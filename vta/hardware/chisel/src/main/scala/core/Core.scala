@@ -63,11 +63,19 @@ class Core(implicit p: Parameters) extends Module {
     val vcr = new VCRClient
     val vme = new VMEMaster
   })
-  val fetch = Module(new Fetch)
-  val load = Module(new Load)
-  val compute = Module(new Compute)
-  val store = Module(new Store)
-  val ecounters = Module(new EventCounters)
+
+  // debug switch
+  val fetchDebug = true
+  val loadDebug = true
+  val computeDebug = true
+  val storeDebug = true
+  val ecountersDebug = true
+
+  val fetch = Module(new Fetch(fetchDebug))
+  val load = Module(new Load(loadDebug))
+  val compute = Module(new Compute(computeDebug))
+  val store = Module(new Store(storeDebug))
+  val ecounters = Module(new EventCounters(ecountersDebug))
 
   // Read(rd) and write(wr) from/to memory (i.e. DRAM)
   io.vme.rd(0) <> fetch.io.vme_rd
