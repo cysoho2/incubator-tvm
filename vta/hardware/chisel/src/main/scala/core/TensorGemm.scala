@@ -33,6 +33,10 @@ class MAC(aBits: Int = 8, bBits: Int = 8, cBits: Int = 16) extends Module {
     val b = Input(SInt(bBits.W))
     val c = Input(SInt(cBits.W))
     val y = Output(SInt(outBits.W))
+
+    // bypass feature
+    val a_o = Output(UInt(aBits.W))
+    val b_o = Output(UInt(bBits.W))
   })
   val mult = Wire(SInt((aBits + bBits).W))
   val add = Wire(SInt(outBits.W))
@@ -44,6 +48,9 @@ class MAC(aBits: Int = 8, bBits: Int = 8, cBits: Int = 16) extends Module {
   add := rC +& mult
 
   io.y := add
+
+  io.a_o := rA.asUInt()
+  io.b_o := rB.asUInt()
 }
 
 /** PipeAdder
@@ -62,6 +69,7 @@ class PipeAdder(aBits: Int = 8, bBits: Int = 8) extends Module {
   val rB = RegNext(io.b)
   add := rA +& rB
   io.y := add
+
 }
 
 /** Adder
@@ -97,6 +105,10 @@ class DotProduct(aBits: Int = 8, bBits: Int = 8, size: Int = 16)
     val a = Input(Vec(size, SInt(aBits.W)))
     val b = Input(Vec(size, SInt(bBits.W)))
     val y = Output(SInt(outBits.W))
+
+    // bypass feature
+    val a_o = Output(Vec(size, UInt(aBits.W)))
+    val b_o = Output(Vec(size, UInt(bBits.W)))
   })
   val s = Seq.tabulate(log2Ceil(size + 1))(i =>
     pow(2, log2Ceil(size) - i).toInt) // # of total layers
@@ -133,6 +145,10 @@ class DotProduct(aBits: Int = 8, bBits: Int = 8, size: Int = 16)
 
   // last adder
   io.y := a(p - 1)(0).io.y
+
+  // bypass feature
+  io.a_o <> m.map(_.io.a_o)
+  io.b_o <> m.map(_.io.b_o)
 }
 
 /** Perform matrix-vector-multiplication based on DotProduct */
@@ -149,6 +165,10 @@ class MatrixVectorMultiplication(implicit p: Parameters) extends Module {
     val acc_i = new TensorMasterData(tensorType = "acc")
     val acc_o = new TensorClientData(tensorType = "acc")
     val out = new TensorClientData(tensorType = "out")
+
+    // bypass feature
+    val inp_o = new TensorClientData(tensorType = "inp")
+    val wgt_o = new TensorClientData(tensorType = "wgt")
   })
   val dot = Seq.fill(size)(
     Module(new DotProduct(aBits = inpBits, bBits = wgtBits, size)))
@@ -172,6 +192,16 @@ class MatrixVectorMultiplication(implicit p: Parameters) extends Module {
   }
   io.acc_o.data.valid := vld.asUInt.andR | io.reset
   io.out.data.valid := vld.asUInt.andR
+
+  // bypass feature
+  io.inp_o.data.valid := true.B
+  io.inp_o.data.bits(0) <> dot(0).io.a_o
+  io.wgt_o.data.valid := true.B
+  for (i <- 0 until size) {
+   for (j <- 0 until size) {
+     io.wgt_o.data.bits(i)(j) <> dot(i).io.b_o(j)
+   }
+  }
 }
 
 /** TensorGemm.
@@ -215,6 +245,14 @@ class TensorGemm(debug: Boolean = false)(implicit p: Parameters)
   val wgt_i = Reg(chiselTypeOf(dec.uop_end))
   val pBits = log2Ceil(p(CoreKey).blockOut) + 1
   val inflight = Reg(UInt(pBits.W))
+
+  // Bypass feature
+  val wgt_idx_pipe = RegNext(io.wgt.rd.idx)
+  val inp_idx_pipe = RegNext(io.inp.rd.idx)
+
+  val wgt_bypass_valid = wgt_idx_pipe.valid & (wgt_idx_pipe.bits === io.wgt.rd.idx.bits)
+  val inp_bypass_valid = inp_idx_pipe.valid & (inp_idx_pipe.bits === io.inp.rd.idx.bits)
+
   // Latency is defined as two in the following, because there is one cycle in the MAC module,
   // and another cycle in the pipelined adders as the first layer of the accumulator
   val wrpipe = Module(new Pipe(chiselTypeOf(dec.uop_end), latency = 2))
@@ -331,23 +369,23 @@ class TensorGemm(debug: Boolean = false)(implicit p: Parameters)
   io.uop.idx.bits := uop_idx
 
   // inp
-  io.inp.rd.idx.valid := state === sReadTensor
+  io.inp.rd.idx.valid := (state === sReadTensor) & !inp_bypass_valid
   io.inp.rd.idx.bits := uop_inp
   io.inp.tieoffWrite() // read-only
 
   // wgt
-  io.wgt.rd.idx.valid := state === sReadTensor
+  io.wgt.rd.idx.valid := (state === sReadTensor) & !wgt_bypass_valid
   io.wgt.rd.idx.bits := uop_wgt
   io.wgt.tieoffWrite() // read-only
 
   // acc_i
-  io.acc.rd.idx.valid := state === sReadTensor
+  io.acc.rd.idx.valid := (state === sReadTensor)
   io.acc.rd.idx.bits := uop_acc
 
   // mvc
   mvc.io.reset := dec.reset & state === sExe
-  mvc.io.inp.data <> io.inp.rd.data
-  mvc.io.wgt.data <> io.wgt.rd.data
+  mvc.io.inp.data <> Mux(inp_bypass_valid, mvc.io.inp_o.data, io.inp.rd.data)
+  mvc.io.wgt.data <> Mux(wgt_bypass_valid, mvc.io.wgt_o.data, io.wgt.rd.data)
   mvc.io.acc_i.data <> io.acc.rd.data
 
   // acc_o
