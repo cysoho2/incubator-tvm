@@ -18,16 +18,16 @@ module VME_read_master #
     parameter LEN_BITS 	= 8
 )
 (
-    input 						clk_in,
-    input 						reset_in,
+    input                       clk_in,
+    input                       reset_in,
     
-    input 						req_cmd_ready_in,
-    output 						req_cmd_valid_out,
+    input                       req_cmd_ready_in,
+    output                      req_cmd_valid_out,
     output [ADDR_BITS - 1 : 0] 	req_cmd_addr_out,
     output [LEN_BITS  - 1 : 0]	req_cmd_len_out,
 
-    output						resp_ready_out,
-    input						resp_valid_in,
+    output                      resp_ready_out,
+    input                       resp_valid_in,
     input  [DATA_BITS - 1 : 0]	resp_data_in
 );
 ```
@@ -42,19 +42,19 @@ module VME_write_master #
     parameter LEN_BITS 	= 8
 )
 (
-    input 						clk_in,
-    input 						reset_in,
+    input                       clk_in,
+    input                       reset_in,
     
-    input 						req_cmd_ready_in,
-    output 						req_cmd_valid_out,
-    output [ADDR_BITS - 1 : 0] 	req_cmd_addr_out,
-    output [LEN_BITS  - 1 : 0]	req_cmd_len_out,
+    input                       req_cmd_ready_in,
+    output                      req_cmd_valid_out,
+    output [ADDR_BITS - 1 : 0]  req_cmd_addr_out,
+    output [LEN_BITS  - 1 : 0]  req_cmd_len_out,
 
-    input						req_data_ready_in,
-    output						req_data_valid_out,
-    output [DATA_BITS - 1 : 0]	req_data_out
+    input                       req_data_ready_in,
+    output                      req_data_valid_out,
+    output [DATA_BITS - 1 : 0]  req_data_out
     
-    input						resp_ack_in
+    input                       resp_ack_in
 );
 ```
 
@@ -91,15 +91,15 @@ module rf_interface #
     parameter PTR_BITS = 32
 )
 (
-    input						launch,
-    output						finish,
+    input                       launch,
+    output                      finish,
 
-    output [ECNT_NUM - 1 : 0]	ecnt0_valid_out,
-    output [REG_BITS - 1 : 0] 	ecnt0_data_out	[ECNT_NUM - 1 : 0],
+    output [ECNT_NUM - 1 : 0]   ecnt0_valid_out,
+    output [REG_BITS - 1 : 0]   ecnt0_data_out  [ECNT_NUM - 1 : 0],
     
-    input  [REG_BITS - 1 : 0]	val_data_in 	[VAL_NUM - 1 : 0],
+    input  [REG_BITS - 1 : 0]   val_data_in     [VAL_NUM - 1 : 0],
     
-    input  [PTR_BITS - 1 : 0] 	ptr_data_in		[PTR_NUM - 1 : 0]
+    input  [PTR_BITS - 1 : 0]   ptr_data_in     [PTR_NUM - 1 : 0]
 )
 ```
 
