@@ -29,9 +29,10 @@ import vta.interface.axi._
   *
   * These parameters are used on VME interfaces and modules.
   */
-case class VMEParams() {
-  val nReadClients: Int = 5
-  val nWriteClients: Int = 1
+case class VMEParams(
+  nReadClients: Int = 5,
+  nWriteClients: Int = 1
+) {
   require(nReadClients > 0,
           s"\n\n[VTA] [VMEParams] nReadClients must be larger than 0\n\n")
   require(

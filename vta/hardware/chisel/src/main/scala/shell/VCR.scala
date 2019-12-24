@@ -29,12 +29,13 @@ import vta.interface.axi._
   *
   * These parameters are used on VCR interfaces and modules.
   */
-case class VCRParams() {
-  val nCtrl = 1
-  val nECnt = 1
-  val nVals = 1
-  val nPtrs = 6
-  val regBits = 32
+case class VCRParams(
+  nCtrl = 1,
+  nECnt = 1,
+  nVals = 1,
+  nPtrs = 6,
+  regBits = 32
+) {
 }
 
 /** VCRBase. Parametrize base class. */
