@@ -30,11 +30,11 @@ import vta.interface.axi._
   * These parameters are used on VCR interfaces and modules.
   */
 case class VCRParams(
-  nCtrl = 1,
-  nECnt = 1,
-  nVals = 1,
-  nPtrs = 6,
-  regBits = 32
+  nCtrl:Int = 1,
+  nECnt:Int = 1,
+  nVals:Int = 1,
+  nPtrs:Int = 6,
+  regBits:Int = 32
 ) {
 }
 
